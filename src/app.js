@@ -2,14 +2,11 @@ import * as THREE from "three/webgpu";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import {Lights} from "./lights";
-import hdri from "./assets/autumn_field_puresky_1k.hdr";
 
 import { float, Fn, mrt, output, pass, vec3, vec4 } from "three/tsl";
 import {conf} from "./conf";
-import {Info} from "./info";
 import MlsMpmSimulator from "./mls-mpm/mlsMpmSimulator";
 import ParticleRenderer from "./mls-mpm/particleRenderer";
-import BackgroundGeometry from "./backgroundGeometry";
 import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js';
 import PointRenderer from "./mls-mpm/pointRenderer.js";
 
@@ -40,11 +37,10 @@ class App {
     }
 
     async init(progressCallback) {
-        this.info = new Info();
         conf.init();
 
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 5);
-        this.camera.position.set(0, 0.5, -1);
+        this.camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.01, 5);
+        this.camera.position.set(0, 0, -20);
         this.camera.updateProjectionMatrix()
 
         this.scene = new THREE.Scene();
@@ -56,7 +52,7 @@ class App {
         this.controls.touches = {
             TWO: THREE.TOUCH.DOLLY_ROTATE,
         }
-        this.controls.maxDistance = 2.0;
+        this.controls.maxDistance = 3.0;
         this.controls.minPolarAngle = 0.2 * Math.PI;
         this.controls.maxPolarAngle = 0.8 * Math.PI;
         this.controls.minAzimuthAngle = 0.7 * Math.PI;
@@ -64,13 +60,9 @@ class App {
 
         await progressCallback(0.1)
 
-        const hdriTexture = await loadHdr(hdri);
-
-        this.scene.background = hdriTexture; //bgNode.mul(2);
-        this.scene.backgroundRotation = new THREE.Euler(0,2.15,0);
-        this.scene.environment = hdriTexture;
-        this.scene.environmentRotation = new THREE.Euler(0,-2.15,0);
-        this.scene.environmentIntensity = 0.5;
+        // Set plain white background
+        this.scene.background = new THREE.Color(0xffffff);
+        this.scene.environment = null;
         //this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 0.66;
 
@@ -85,13 +77,14 @@ class App {
         this.scene.add(this.particleRenderer.object);
         this.pointRenderer = new PointRenderer(this.mlsMpmSim);
         this.scene.add(this.pointRenderer.object);
+        
+        // Expose app instance globally for conf access
+        window.app = this;
 
         this.lights = new Lights();
         this.scene.add(this.lights.object);
 
-        const backgroundGeometry = new BackgroundGeometry();
-        await backgroundGeometry.init();
-        this.scene.add(backgroundGeometry.object);
+        // Box container removed
 
 
         const scenePass = pass(this.scene, this.camera);

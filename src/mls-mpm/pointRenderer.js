@@ -21,7 +21,7 @@ class PointRenderer {
         this.object.frustumCulled = false;
 
         const s = (1/64);
-        this.object.position.set(-32.0*s,0,0);
+        this.object.position.set(-64.0*s,0,0); // Updated for 2x wider container
         this.object.scale.set(s,s,s);
         this.object.castShadow = true;
         this.object.receiveShadow = true;

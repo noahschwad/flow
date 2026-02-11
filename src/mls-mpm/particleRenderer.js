@@ -104,47 +104,33 @@ class ParticleRenderer {
         this.geometry =  new THREE.InstancedBufferGeometry().copy(cone);
         console.log(this.geometry);*/
 
-        //const sphereGeometry = BufferGeometryUtils.mergeVertices(new THREE.IcosahedronGeometry(0.5, 1));
+        const sphereGeometry = BufferGeometryUtils.mergeVertices(new THREE.SphereGeometry(0.3, 16, 16));
         const boxGeometry = BufferGeometryUtils.mergeVertices(new THREE.BoxGeometry(7, 7,30), 3.0);
         boxGeometry.attributes.position.array = boxGeometry.attributes.position.array.map(v => v*0.1);
-        const roundedBoxGeometry = createRoundedBox(0.7,0.7,3,0.1); //BufferGeometryUtils.mergeVertices(new RoundedBoxGeometry(0.7,0.7,3,1,0.1));
 
-        this.defaultIndexCount = roundedBoxGeometry.index.count;
+        this.defaultIndexCount = sphereGeometry.index.count;
         this.shadowIndexCount = boxGeometry.index.count;
 
-        const mergedGeometry = BufferGeometryUtils.mergeGeometries([roundedBoxGeometry, boxGeometry]);
+        const mergedGeometry = BufferGeometryUtils.mergeGeometries([sphereGeometry, boxGeometry]);
 
         this.geometry = new THREE.InstancedBufferGeometry().copy(mergedGeometry);
 
         this.geometry.setDrawRange(0, this.defaultIndexCount);
         this.geometry.instanceCount = this.mlsMpmSim.numParticles;
 
-        this.material = new THREE.MeshStandardNodeMaterial({
-            metalness: 0.900,
-            roughness: 0.50,
-            //iridescence: 1.0,
-        });
+        // Use unlit material for uniform color
+        this.material = new THREE.MeshBasicNodeMaterial();
 
         this.uniforms.size = uniform(1);
-        const vAo = varying(0, "vAo");
-        const vNormal = varying(vec3(0), "v_normalView");
 
         const particle = this.mlsMpmSim.particleBuffer.element(instanceIndex);
         this.material.positionNode = Fn(() => {
             const particlePosition = particle.get("position");
             const particleDensity = particle.get("density");
-            const particleDirection = particle.get("direction");
 
-            //return attribute("position").xyz.mul(10).add(vec3(32,32,0));
-            //return attribute("position").xyz.mul(0.1).add(positionAttribute.mul(vec3(1,1,0.4)));
-            const mat = calcLookAtMatrix(particleDirection.xyz);
-            vNormal.assign(transformNormalToView(mat.mul(normalLocal)));
-            vAo.assign(particlePosition.z.div(64));
-            vAo.assign(vAo.mul(vAo).oneMinus());
-            return mat.mul(attribute("position").xyz.mul(this.uniforms.size)).mul(particleDensity.mul(0.4).add(0.5).clamp(0,1)).add(particlePosition.mul(vec3(1,1,0.4)));
+            return attribute("position").xyz.mul(this.uniforms.size).mul(particleDensity.mul(0.4).add(0.5).clamp(0,1)).add(particlePosition.mul(vec3(1,1,0.4)));
         })();
-        this.material.colorNode = particle.get("color");
-        this.material.aoNode = vAo;
+        this.material.colorNode = particle.get("color"); // Use per-particle color from palette
 
         //this.material.fragmentNode = vec4(0,0,0,1);
         //this.material.envNode = vec3(0.5);
@@ -157,10 +143,10 @@ class ParticleRenderer {
         this.object.frustumCulled = false;
 
         const s = (1/64);
-        this.object.position.set(-32.0*s,0,0);
+        this.object.position.set(-64.0*s,0,0); // Updated for 2x wider container
         this.object.scale.set(s,s,s);
-        this.object.castShadow = true;
-        this.object.receiveShadow = true;
+        this.object.castShadow = false;
+        this.object.receiveShadow = false;
     }
 
     update() {
