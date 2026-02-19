@@ -37,8 +37,6 @@ class App {
     }
 
     async init(progressCallback) {
-        conf.init();
-
         this.camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.01, 5);
         this.camera.position.set(0, 0, -20);
         this.camera.updateProjectionMatrix()
@@ -78,8 +76,11 @@ class App {
         this.pointRenderer = new PointRenderer(this.mlsMpmSim);
         this.scene.add(this.pointRenderer.object);
         
-        // Expose app instance globally for conf access
-        window.app = this;
+        // Store particleRenderer reference in mlsMpmSim for material updates
+        this.mlsMpmSim.particleRenderer = this.particleRenderer;
+        
+        // Initialize conf with app instance after everything is set up
+        conf.init(this);
 
         this.lights = new Lights();
         this.scene.add(this.lights.object);
